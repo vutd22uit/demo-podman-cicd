@@ -1,0 +1,37 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Build image
+      run: |
+        docker build -t myapp .
+        
+    - name: Run tests
+      run: |
+        docker run --rm myapp npm test
+        
+    - name: Push to Registry
+      run: |
+        docker push myapp:latest ${{ secrets.REGISTRY_URL }}
+        
+  deploy:
+    needs: build
+    runs-on: macos-latest
+    
+    steps:
+    - name: Deploy to Production
+      run: |
+        docker pull ${{ secrets.REGISTRY_URL }}:latest
+        docker run -d -p 80:8080 myapp:latest
